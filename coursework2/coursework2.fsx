@@ -154,7 +154,6 @@ let tuple2_ToString (a,b) = a.ToString() + ", " + b.ToString()
 let bibiliographyItemToList ((authors, article, year, pages) :BibliographyItem) = 
     [(list_ToString authors).ToString() ; article.ToString(); year.ToString() ; (tuple2_ToString pages).ToString()]
       
-bibiliographyItemToList BibliographyData.[1]
 let commaSeperatedList (l :BibliographyItem list) =
     let rec merge list = 
         match list with 
