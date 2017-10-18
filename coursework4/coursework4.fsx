@@ -59,8 +59,12 @@ type FileSystem = (Element * Permission) list
   | Dir of string*FileSystem
 
 let createEmptyFilesystem () :FileSystem = 
-    //[Dir("root",[])]
-    []:FileSystem
+    [Dir("~/",[]), ReadWrite]
+    //[]:FileSystem
+
+let getPerm (tpl : Element * Permission) = 
+    match tpl with
+    | (el :Element, p :Permission) -> p
 
 let getElement (tpl : Element * Permission) =
     match tpl with
@@ -83,31 +87,34 @@ let getDirContent (elem: Element) =
 // is the filesystem to create the file into. 
 // (Permissions are initially assumed to be ReadWrite, check task 5)  
 
-(*
+
 let createFile (file :string) (filesystem :FileSystem) :FileSystem =
     let newFile = File file
-    let root = filesystem.Head
-    [Dir ((getName root), (newFile :: (getDirContent root)))]
-*)
+    let root = getElement filesystem.Head
+    [Dir ((getName root), ((newFile, ReadWrite) :: (getDirContent root))), ReadWrite]
+
+(*
 let createFile (file :string) (fs :FileSystem) :FileSystem =
     let newFile = File file
     (newFile, ReadWrite) :: fs
-
+*)
 // createDir : string -> FileSystem -> FileSystem
 // that will create a directory into the root directory of the current
 // file system.
 // The second argument is the name of the directory 
 // (Permissions are initially assumed to be ReadWrite, check task 5)  
 
-(*
+
 let createDir (dirName :string) (filesystem :FileSystem) :FileSystem=
     let newDir = Dir (dirName, [])
-    let root = filesystem.Head
-    [Dir ((getName root), (newDir :: (getDirContent root)))]
-*)
+    let root = getElement filesystem.Head
+    [Dir ((getName root), ((newDir, ReadWrite) :: (getDirContent root))), ReadWrite]
+
+(*
 let createDir (dir :string) (fs :FileSystem) :FileSystem =
     let newDir = Dir (dir, [])
     (newDir, ReadWrite) :: fs
+*)
 
 // 2. Define a function 
 // createSubDir : string -> FileSystem -> FileSystem -> FileSystem
@@ -115,17 +122,18 @@ let createDir (dir :string) (fs :FileSystem) :FileSystem =
 // contents given as the second argument into a file system given
 // as the third argument.
 
-(*
-let createSubDir (dirName :string) (fs1 :FileSystem) (fs2 :FileSystem) :FileSystem =
-    let newFS = Dir (dirName, getDirContent fs1.Head)
-    let root = fs2.Head
-    [Dir((getName root), (newFS :: (getDirContent root)))]
-    *)
 
+let createSubDir (dirName :string) (fs1 :FileSystem) (fs2 :FileSystem) :FileSystem =
+    let newFS = Dir (dirName, getDirContent (getElement fs1.Head))
+    let root = getElement fs2.Head
+    [Dir((getName root), ((newFS, ReadWrite) :: (getDirContent root))), ReadWrite]
+  
+
+(*
 let createSubDir (dirName :string) (fs1 :FileSystem) (fs2 :FileSystem) :FileSystem =
     let newFS = Dir(dirName, fs2)
     (newFS, ReadWrite) :: fs1
-
+*)
 (*    
 let createSubDir (dirName :string) (fs1 :FileSystem) (fs2 :FileSystem) :FileSystem = 
     [Dir ((getName fs1), 
@@ -135,24 +143,21 @@ let createSubDir (dirName :string) (fs1 :FileSystem) (fs2 :FileSystem) :FileSyst
 // 3. Define a function
 // count : FileSystem -> int
 // that will recursively count the number of files in the current filesystem.
-(*
+
 let count (fs :FileSystem) = 
     let root = fs.Head
-    let FSContent = getDirContent root
+    let FSContent = getDirContent (getElement root)
     let rec fileCount (rootFS :FileSystem) =
         match rootFS with
         | [] -> 0
         | elem1 :: restFS ->
-            printf "%s \n" (getName elem1)
-            match elem1 with
+            match getElement elem1 with
             | File f -> 1 + fileCount restFS
-            | Dir (name,f) ->
-                printfn "%s \n" name
-                fileCount f + fileCount restFS
+            | Dir (name,f) -> fileCount f + fileCount restFS
     fileCount fs   
 
-*)
 
+(*
 let rec count (fs :FileSystem) :int= 
     match fs with
     | [] -> 0
@@ -160,10 +165,12 @@ let rec count (fs :FileSystem) :int=
         match getElement file with
         | File f -> 1 + count system
         | Dir (name, f) -> count f + count system
+*)
+let t1 = [Dir ("~/", [ (Dir ("d1", [ (Dir ("D2",[(File "f1", ReadWrite) ]), ReadWrite) ]), ReadWrite); 
+            (Dir ("d4",[(Dir ("d1",[(Dir ("d1",[(File "f1", ReadWrite)]), ReadWrite)]), ReadWrite)]), ReadWrite); (File "f1", ReadWrite)]), ReadWrite];;        
 
-let t1 = [ (Dir ("d1", [ (Dir ("D2",[(File "f1", ReadWrite) ]), ReadWrite) ]), ReadWrite); 
-            (Dir ("d4",[(Dir ("d1",[(Dir ("d1",[(File "f1", ReadWrite)]), ReadWrite)]), ReadWrite)]), ReadWrite); (File "f1", ReadWrite)];;        
-
+let t2 = [(Dir ("d1", [ (Dir ("D2",[(File "f1", ReadWrite) ]), ReadWrite) ]), ReadWrite); 
+            (Dir ("d4",[(Dir ("d1",[(Dir ("d1",[(File "f1", ReadWrite)]), ReadWrite)]), ReadWrite)]), ReadWrite); (File "f1", ReadWrite)];;
 // 4. Define a function
 // changePermissions Permission -> string list -> FileSystem -> FileSystem
 // that will apply the specified permission the file or directory
@@ -171,31 +178,32 @@ let t1 = [ (Dir ("d1", [ (Dir ("D2",[(File "f1", ReadWrite) ]), ReadWrite) ]), R
 // represents a structure where "Dir1" is in the root directory, "Dir2" is
 // in "Dir1" and "File1" is in "Dir2".
 
-let rec changePermissions (perm :Permission) (path :string list) (fs :FileSystem) :FileSystem =
-    match path with
-    | [fileName] ->
+let rec changePermission (perm :Permission) (path :string list) (fs :FileSystem) :FileSystem =
+        match path with
+        | [fileName] ->
         //printf "%s \n" fileName 
-        match fs with 
-        | elem :: system when (getName (getElement elem)) = fileName ->
-            match getElement elem with
-            | File file -> (File file, perm) :: system
-            | Dir (name, sys) -> (Dir (name, sys), perm) :: system
-        | elem :: system -> elem :: changePermissions perm [fileName] system
-        | _ -> fs    
-    | fileName :: restOfPath ->
-        printf "%s \n" fileName
-        match fs with
-        | elem :: system when (getName (getElement elem)) = fileName ->
-            printf "%s \n" "equal"
-            match getElement elem with
-            | Dir (nameOfDir, content) -> 
-                printf "%s \n" "Going deeper"
-                changePermissions perm restOfPath content
-            | _ -> fs
-        | elem :: system -> 
-            printf "%s \n" "Not equal"
-            changePermissions perm path system           
-    | _ -> fs    
+            match fs with 
+            | elem :: system when (getName (getElement elem)) = fileName ->
+                match getElement elem with
+                | File file -> (File file, perm) :: system
+                | Dir (name, sys) -> (Dir (name, sys), perm) :: system
+            | elem :: system -> elem :: changePermission perm [fileName] system
+            | _ -> fs    
+        | fileName :: restOfPath ->
+            match fs with
+            | elem :: system when (getName (getElement elem)) = fileName ->
+                match getElement elem with
+                | Dir (nameOfDir, content) -> 
+                    let newDir = changePermission perm restOfPath content
+                    let p = getPerm elem
+                    (Dir(nameOfDir, newDir), p) :: system
+                | _ -> fs
+            | elem :: system -> elem :: changePermission perm path system
+            | _ -> fs           
+        | _ -> fs 
+   
+       
+changePermission Read ["~/"; "d4"; "d1"] t1;;
 
 // 5. Modify the implementations of createFile and createDir to honor the
 // permissions of the current file system level, i.e. if the permission 
@@ -203,6 +211,25 @@ let rec changePermissions (perm :Permission) (path :string list) (fs :FileSystem
 // with an exception and an appropriate message (that you should formulate yourself).
 // Hint: use the built-in failwith function.
 
+let createFilePerm (file :string) (perm :Permission) (fs :FileSystem) = 
+    let root = getElement fs.Head
+    let rootPerm = getPerm fs.Head
+    match rootPerm with
+    | Write | ReadWrite ->
+        let newFile = File file
+        [Dir ((getName root), ((newFile, perm) :: (getDirContent root))), rootPerm]
+    | _ -> failwith("Access denied !!! No privilege to write in root.")    
+
+
+let createDirPerm (dirName :string) (perm :Permission) (fs :FileSystem) = 
+    let root = getElement fs.Head
+    let rootPerm = getPerm fs.Head
+    match rootPerm with
+    | Write | ReadWrite ->
+        let newDir = Dir (dirName, [])
+        [Dir ((getName root), ((newDir, perm) :: (getDirContent root))), rootPerm]
+    | _ -> failwith("Access denied !!! No privilege to write in root.")
+    
 // 6. Implement the function
 // locate : string -> FileSystem -> string list list
 // that will locate all files and directories with name matching the first argument
