@@ -140,7 +140,7 @@ let getTitle (bibliographyItem :BibliographyItem) =
   | Article item -> item.title.ToString() 
   | Book item -> item.title.ToString() 
   | Inproceedings item -> item.title.ToString() + "."
-  | MscThesis item -> item.title.ToString() 
+  | MscThesis item -> item.title.ToString() + "."
   | Misc item -> if item.title.IsSome then item.title.Value.ToString() else ""
 
 let getJournal (bibliographyItem :BibliographyItem) =
@@ -387,7 +387,7 @@ let misc2 = Misc {
   year          = Some 2001
   note          = None
 }
-let bibliographyData = [article1; article2]
+let bibliographyData = [article1; article2; inproceedings1; inproceedings2; book1; book2; mscThesis1; mscThesis2; misc1; misc2]
 // 3. Create a function formatInACMReferenceStyle : BibliographyItem -> string that will format the bibliography items
 // using the reference style specified here: http://www.acm.org/publications/authors/reference-formatting
 
@@ -414,6 +414,7 @@ let formatInACMReferenceStyle (item :BibliographyItem) :string =
   | Book it when getSeries item <> "" -> (formatAuthor (getAuthor item)) + (getYear item) + (getTitle item) + " " + (getEdition item) + " The name of the series " +
                                           (getSeries item) + " " + (getPublisher item) + " " + (getAddres item)
   | Book                          it  -> (formatAuthor (getAuthor item)) + (getYear item) + (getTitle item) + " " + (getEdition item) + " " + (getAddres item)
+
 
 // 4. Write a function compareByAuthorYear : BibliographyItem -> BibliographyItem -> int that will compare the authors and year of the
 // bibliography item in the same way as specified in coursework2.
@@ -443,7 +444,7 @@ let orderBibliography (func : BibliographyItem -> BibliographyItem -> int) (l :B
 let formatBibliographyItems (f : BibliographyItem -> string) (l :BibliographyItem list) :string list =
   l |> List.map(f)
 
-let b = formatBibliographyItems formatInACMReferenceStyle bibliographyData
+formatBibliographyItems formatInACMReferenceStyle bibliographyData
 
 // 7. Write a function getNumberedBibliography : BibliographyItem list -> string
 // that contains a numbered bibliography where each bibliography item is preceded with a sequence number surrounded
