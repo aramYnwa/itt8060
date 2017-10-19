@@ -173,14 +173,14 @@ let t1 = [Dir ("~/",
                             ("D2", [(File "f1", Write) ]), 
                           ReadWrite) 
                         ]), 
-                  ReadWrite); 
+                  Read); 
                   (Dir 
                     ("d4",
                         [(Dir 
                             ("d1",
                                 [(Dir 
                                     ("d1", [(File "f1", ReadWrite)]), 
-                                ReadWrite)]), 
+                                Read)]), 
                      ReadWrite)]), 
                   ReadWrite); 
                   (File "f1", Write)]), 
@@ -199,7 +199,6 @@ let t2 = [(Dir ("d1", [ (Dir ("D2",[(File "f1", ReadWrite) ]), ReadWrite) ]), Re
 let rec changePermission (perm :Permission) (path :string list) (fs :FileSystem) :FileSystem =
         match path with
         | [fileName] ->
-        //printf "%s \n" fileName 
             match fs with 
             | elem :: system when (getName (getElement elem)) = fileName ->
                 match getElement elem with
@@ -300,6 +299,7 @@ let locate (name :string) (fs :FileSystem) :string list list =
 
 
 locate "f1" t1
+
 // 7. Implement the function
 // delete : string list -> FileSystem -> FileSystem
 // which will delete the file or directory specified with the first argument (the path
@@ -307,7 +307,8 @@ locate "f1" t1
 // not containing the file or directory represented by the first argument.
 // If the file or directory does not have a write permission, the deletion should not
 // be performed and the original file system should be returned.
- 
+
+
 // Bonus (1p):
 // 8. Implement the function:
 // recursiveDelete : string list -> FileSystem ->FileSystem
@@ -317,3 +318,38 @@ locate "f1" t1
 // and recursively only delete files with write permissions from directories with 
 // write permissions. Subdirectories which will become empty need to be deleted as well. 
 
+
+let rec del (fs:FileSystem) :FileSystem =
+    match fs with
+    | [] -> []
+    | file :: system ->
+        let perm = getPerm file
+        match getElement file with 
+        | File fl when perm <> Read -> del system
+        | File fl -> file :: (del system)
+        | Dir (dirName, content) when perm <> Read ->
+            let newDir = del content
+            if newDir.IsEmpty then (del system) else
+                (Dir(dirName, newDir), perm) :: (del system)
+        | Dir (dirName, content) -> file :: (del system)   
+
+let rec recursiveDelete (path :string list) (fs :FileSystem) :FileSystem = 
+    match path with
+    | [] -> fs
+    | [root] -> 
+        match fs with
+        | [] -> []
+        | head :: tail when getName (getElement head) = root ->
+            match getElement head with
+            | File file -> tail
+            | Dir (name, content) -> (del [head]) @ tail
+        | head :: tail -> head :: recursiveDelete path tail
+    | hPath :: tPath ->
+        match fs with
+        | [] -> []
+        | head :: tail when getName (getElement head) = hPath ->
+            match getElement head with
+            | File _ -> failwith "Wrong PATH!"
+            | Dir (dirName, content) -> [(Dir (dirName, recursiveDelete tPath content), getPerm head)] @ tail
+        | head :: tail -> head :: recursiveDelete path tail     
+        
