@@ -166,9 +166,27 @@ let rec count (fs :FileSystem) :int=
         | File f -> 1 + count system
         | Dir (name, f) -> count f + count system
 *)
-let t1 = [Dir ("~/", [ (Dir ("d1", [ (Dir ("D2",[(File "f1", ReadWrite) ]), ReadWrite) ]), ReadWrite); 
-            (Dir ("d4",[(Dir ("d1",[(Dir ("d1",[(File "f1", ReadWrite)]), ReadWrite)]), ReadWrite)]), ReadWrite); (File "f1", ReadWrite)]), ReadWrite];;        
-
+let t1 = [Dir ("~/", 
+                [ (Dir 
+                    ("d1", 
+                        [ (Dir 
+                            ("D2", [(File "f1", Write) ]), 
+                          ReadWrite) 
+                        ]), 
+                  ReadWrite); 
+                  (Dir 
+                    ("d4",
+                        [(Dir 
+                            ("d1",
+                                [(Dir 
+                                    ("d1", [(File "f1", ReadWrite)]), 
+                                ReadWrite)]), 
+                     ReadWrite)]), 
+                  ReadWrite); 
+                  (File "f1", Write)]), 
+           ReadWrite];;        
+getElement t1.Head
+getName (getElement t1.Head)
 let t2 = [(Dir ("d1", [ (Dir ("D2",[(File "f1", ReadWrite) ]), ReadWrite) ]), ReadWrite); 
             (Dir ("d4",[(Dir ("d1",[(Dir ("d1",[(File "f1", ReadWrite)]), ReadWrite)]), ReadWrite)]), ReadWrite); (File "f1", ReadWrite)];;
 // 4. Define a function
@@ -229,7 +247,7 @@ let createDirPerm (dirName :string) (perm :Permission) (fs :FileSystem) =
         let newDir = Dir (dirName, [])
         [Dir ((getName root), ((newDir, perm) :: (getDirContent root))), rootPerm]
     | _ -> failwith("Access denied !!! No privilege to write in root.")
-    
+
 // 6. Implement the function
 // locate : string -> FileSystem -> string list list
 // that will locate all files and directories with name matching the first argument
@@ -239,6 +257,49 @@ let createDirPerm (dirName :string) (perm :Permission) (fs :FileSystem) =
 // Note that the locate should honor the permissions, i.e. the files from
 // directories without a read permission should not be returned.
 
+let locate (name :string) (fs :FileSystem) :string list list = 
+    let rec loc (name :string) (fs :FileSystem) (path :string list) (acc :string list list) =
+        match fs with
+        | [] -> acc
+        | file :: system -> 
+            let perm = getPerm file
+            let fl = getElement file
+            match perm with
+            | Write -> 
+                //failwith("NoAccess")
+                loc name system path acc
+            | _ when getName fl = name ->
+                match fl with 
+                | File tempFile ->
+                    printf "ayo! \n"
+                    let acc = (path @ [name]) :: acc
+                    loc name system path acc
+                | Dir (_,tempDir) ->
+                    let newPAth = path @ [name]
+                    let result = loc name tempDir newPAth (newPAth :: acc)    
+                    loc name system path result
+            | _ -> 
+                match fl with
+                | File _ -> loc name system path acc
+                | Dir (nameDir, tempDir) ->
+                    let newPath = path @ [nameDir]
+                    let result = loc name tempDir newPath acc
+                    loc name system path result
+        | _ -> acc  
+    let acc :string list list = []
+    let rootElem = getElement fs.Head
+    let perm = getPerm fs.Head
+    let rootName = getName rootElem
+    let rootContent = getDirContent (rootElem)
+    match perm with
+    | Write -> failwith("No!")
+    | _ when rootName = name -> 
+        let acc = [rootName] :: acc
+        loc name rootContent [rootName] acc 
+    | _ -> loc name rootContent [rootName] acc       
+
+
+locate "f1" t1
 // 7. Implement the function
 // delete : string list -> FileSystem -> FileSystem
 // which will delete the file or directory specified with the first argument (the path
