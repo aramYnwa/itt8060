@@ -60,7 +60,9 @@ type FileSystem = (Element * Permission) list
 
 let createEmptyFilesystem () :FileSystem = 
     [Dir("~/",[]), ReadWrite]
-    //[]:FileSystem
+
+//Our empty file system has this structure
+// [(Dir ("~/",[]), ReadWrite)]
 
 let getPerm (tpl : Element * Permission) = 
     match tpl with
@@ -77,7 +79,6 @@ let getName (elem :Element) =
 let getDirContent (elem: Element) =
    match elem with
    | Dir (name, content) -> content
-   //| File name -> raise |> new ArgumentException("")
 
 // 1. Define two functions 
 // createFile : string -> FileSystem -> FileSystem
@@ -87,17 +88,11 @@ let getDirContent (elem: Element) =
 // is the filesystem to create the file into. 
 // (Permissions are initially assumed to be ReadWrite, check task 5)  
 
-
 let createFile (file :string) (filesystem :FileSystem) :FileSystem =
     let newFile = File file
     let root = getElement filesystem.Head
     [Dir ((getName root), ((newFile, ReadWrite) :: (getDirContent root))), ReadWrite]
 
-(*
-let createFile (file :string) (fs :FileSystem) :FileSystem =
-    let newFile = File file
-    (newFile, ReadWrite) :: fs
-*)
 // createDir : string -> FileSystem -> FileSystem
 // that will create a directory into the root directory of the current
 // file system.
@@ -109,12 +104,6 @@ let createDir (dirName :string) (filesystem :FileSystem) :FileSystem=
     let newDir = Dir (dirName, [])
     let root = getElement filesystem.Head
     [Dir ((getName root), ((newDir, ReadWrite) :: (getDirContent root))), ReadWrite]
-
-(*
-let createDir (dir :string) (fs :FileSystem) :FileSystem =
-    let newDir = Dir (dir, [])
-    (newDir, ReadWrite) :: fs
-*)
 
 // 2. Define a function 
 // createSubDir : string -> FileSystem -> FileSystem -> FileSystem
@@ -128,18 +117,6 @@ let createSubDir (dirName :string) (fs1 :FileSystem) (fs2 :FileSystem) :FileSyst
     let root = getElement fs2.Head
     [Dir((getName root), ((newFS, ReadWrite) :: (getDirContent root))), ReadWrite]
   
-
-(*
-let createSubDir (dirName :string) (fs1 :FileSystem) (fs2 :FileSystem) :FileSystem =
-    let newFS = Dir(dirName, fs2)
-    (newFS, ReadWrite) :: fs1
-*)
-(*    
-let createSubDir (dirName :string) (fs1 :FileSystem) (fs2 :FileSystem) :FileSystem = 
-    [Dir ((getName fs1), 
-          [Dir(dirName, getDirContent fs2)] :: getDirContent fs1), ReadWrite]    
-*)
-
 // 3. Define a function
 // count : FileSystem -> int
 // that will recursively count the number of files in the current filesystem.
@@ -157,15 +134,7 @@ let count (fs :FileSystem) =
     fileCount fs   
 
 
-(*
-let rec count (fs :FileSystem) :int= 
-    match fs with
-    | [] -> 0
-    | file :: system -> 
-        match getElement file with
-        | File f -> 1 + count system
-        | Dir (name, f) -> count f + count system
-*)
+//Some examples for testing
 let t1 = [Dir ("~/", 
                 [ (Dir 
                     ("d1", 
@@ -173,20 +142,19 @@ let t1 = [Dir ("~/",
                             ("D2", [(File "f1", Write) ]), 
                           ReadWrite) 
                         ]), 
-                  Read); 
+                  Write); 
                   (Dir 
                     ("d4",
                         [(Dir 
                             ("d1",
                                 [(Dir 
                                     ("d1", [(File "f1", ReadWrite)]), 
-                                Read)]), 
-                     ReadWrite)]), 
+                                ReadWrite)]), 
+                     Read)]), 
                   ReadWrite); 
                   (File "f1", Write)]), 
            ReadWrite];;        
-getElement t1.Head
-getName (getElement t1.Head)
+
 // 4. Define a function
 // changePermissions Permission -> string list -> FileSystem -> FileSystem
 // that will apply the specified permission the file or directory
@@ -343,7 +311,8 @@ let rec delete (path :string list) (fs :FileSystem) :FileSystem =
 // and recursively only delete files with write permissions from directories with 
 // write permissions. Subdirectories which will become empty need to be deleted as well. 
 
-
+// If we delete filesystem recursively we will get empty file system.
+// To delete root as well, we need to do that explicitly.
 let rec del (fs:FileSystem) :FileSystem =
     match fs with
     | [] -> []
@@ -365,16 +334,24 @@ let rec recursiveDelete (path :string list) (fs :FileSystem) :FileSystem =
         match fs with
         | [] -> []
         | head :: tail when getName (getElement head) = root ->
-            match getElement head with
-            | File file -> tail
-            | Dir (name, content) -> (del [head]) @ tail
+            let perm = getPerm head
+            match perm with
+            | Write -> head :: tail
+            | _ -> 
+                match getElement head with
+                | File file -> tail
+                | Dir (name, content) -> (del [head]) @ tail
         | head :: tail -> head :: recursiveDelete path tail
     | hPath :: tPath ->
         match fs with
         | [] -> []
         | head :: tail when getName (getElement head) = hPath ->
-            match getElement head with
-            | File _ -> failwith "Wrong PATH!"
-            | Dir (dirName, content) -> [(Dir (dirName, recursiveDelete tPath content), getPerm head)] @ tail
+            let perm = getPerm head
+            match perm with
+            | Write -> head ::tail
+            | _ ->
+                match getElement head with
+                | File _ -> failwith "Wrong PATH!"
+                | Dir (dirName, content) -> [(Dir (dirName, recursiveDelete tPath content), getPerm head)] @ tail
         | head :: tail -> head :: recursiveDelete path tail     
         
