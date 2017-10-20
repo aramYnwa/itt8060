@@ -187,8 +187,6 @@ let t1 = [Dir ("~/",
            ReadWrite];;        
 getElement t1.Head
 getName (getElement t1.Head)
-let t2 = [(Dir ("d1", [ (Dir ("D2",[(File "f1", ReadWrite) ]), ReadWrite) ]), ReadWrite); 
-            (Dir ("d4",[(Dir ("d1",[(Dir ("d1",[(File "f1", ReadWrite)]), ReadWrite)]), ReadWrite)]), ReadWrite); (File "f1", ReadWrite)];;
 // 4. Define a function
 // changePermissions Permission -> string list -> FileSystem -> FileSystem
 // that will apply the specified permission the file or directory
@@ -308,6 +306,33 @@ locate "f1" t1
 // If the file or directory does not have a write permission, the deletion should not
 // be performed and the original file system should be returned.
 
+let rec delete (path :string list) (fs :FileSystem) :FileSystem =
+    match path with
+    | [] -> fs
+    | [root] ->
+        match fs with
+        | [] -> []
+        | f1 :: system when getName (getElement f1) = root ->
+            let perm = getPerm f1
+            match perm with 
+            | Read -> fs
+            | _ -> system
+        | f1 :: system ->
+            f1 :: delete path system
+    | path1 :: restPath ->
+        match fs with 
+        | [] -> []
+        | f1 :: system when getName (getElement f1) = path1 ->
+            let perm  = getPerm f1
+            match perm with
+            | Read -> f1 :: system
+            | _ ->
+                match getElement f1 with 
+                | File f -> failwith ("Wrong Path!")
+                | Dir (_,_) ->
+                    let res = delete restPath (getDirContent (getElement f1))
+                    (Dir (path1, res), perm) :: system
+        | f1 :: system -> f1 :: delete path system          
 
 // Bonus (1p):
 // 8. Implement the function:
