@@ -82,7 +82,7 @@ type 'a Tree =
   | Leaf   of 'a
   | Branch of 'a Tree * 'a Tree
 
-let tree1 = Branch (Branch(Leaf 1.0, Leaf 1.0), Leaf 1.0)
+let tree1 = Branch (Branch(Leaf 5.0, Leaf 4.0), Leaf 10.0)
 let tree = Branch (
             Branch (
                 Leaf 9.6,
@@ -93,11 +93,14 @@ let tree = Branch (
                     Leaf 5.9),
                 Leaf 4.7))
 
-
-let rec minInTree (t :float Tree) :float = 
+let rec minInTree (t :float Tree) (cont) :float = 
   match t with 
-  | Leaf _ -> 0.0
-  | Branch (l,r) -> (min (minInTree(l)) (minInTree(r))) + 1.0
+  | Leaf a -> cont a  
+  | Branch (l,r) -> minInTree l (fun left -> minInTree r (fun right -> cont (min left right)))
+
+
+minInTree tree
+minInTree tree1
 (*
   Task 4:
 
@@ -107,18 +110,28 @@ let rec minInTree (t :float Tree) :float =
   implementation.
 *)
 
-let minInTree' (t :float Tree) : float =
-  let rec minlabel (t :float Tree, acc :float) :float =
+let minInTree' (t :int Tree) : int =
+  let rec minlabel (t :int Tree) (acc :int) (c) :int =
     match t with 
-    | Leaf _ -> acc 
+    | Leaf a ->
+       let acc = a
+       acc
     | Branch (l, r) ->
-       let acc = acc + 1.0
-       min (minlabel (l, acc)) (minlabel (r, acc))
-  minlabel(t, 0.0)   
+       minlabel l acc (fun left -> minlabel r acc (fun right -> c (min left right)))
+  minlabel t System.Int32.MaxValue id 
 
 
-minInTree tree
-minInTree' tree
 
-minInTree tree1
-minInTree' tree1
+let tree3 = Branch (Branch(Leaf 5, Leaf 4), Leaf 10)
+let tree4 = Branch (
+            Branch (
+                Leaf 9,
+                Leaf 2),
+            Branch (
+                Branch(
+                    Leaf 6,
+                    Leaf 5),
+                Leaf 4))
+
+minInTree' tree3
+minInTree' tree4
