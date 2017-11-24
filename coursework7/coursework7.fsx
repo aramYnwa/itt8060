@@ -8,8 +8,8 @@
   Coursework 7: Property based testing
 
   ------------------------------------------------
-  Name:
-  Student ID:
+  Name: Aramais Khachatryan
+  Student ID: arkhac@ttu.ee
   ------------------------------------------------
 
 
@@ -168,7 +168,10 @@ let palindromeIsEqualToItsReverseWithGen xs=
 Check.Quick palindromeIsEqualToItsReverseWithGen
 
 
+let palindromeIsEqualToItsReverseWithGenAndStats xs =
+    palindromeIsEqualToItsReverseWithGen xs |> Prop.collect (List.length xs) |> Prop.trivial (List.length xs = 0)
 
+Check.Quick palindromeIsEqualToItsReverseWithGenAndStats
 (*
     Task 4:
 
